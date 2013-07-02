@@ -10,7 +10,7 @@ import warnings
 import traceback
 import logging
 
-from clients import HttpSession
+
 import events
 
 from exception import LocustError, InterruptTaskSet, RescheduleTask, RescheduleTaskImmediately, StopLocust
@@ -95,8 +95,11 @@ class Locust(object):
         if self.host is None:
             raise LocustError("You must specify the base host. Either in the host attribute in the Locust class, or on the command line using the --host option.")
         
-        self.client = HttpSession(base_url=self.host)
-    
+        #from clients.http import HttpSession
+        #self.client = HttpSession(base_url=self.host)
+        from clients.geventhttp import GeventHttpSession
+        self.client = GeventHttpSession(base_url=self.host)
+
     def run(self):
         try:
             self.task_set(self).run()

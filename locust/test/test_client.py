@@ -1,7 +1,7 @@
 import unittest
 from requests.exceptions import RequestException
 
-from locust.clients import HttpSession
+from locust.clients.http import HttpSession
 from testcases import WebserverTestCase
 
 class TestHttpSession(WebserverTestCase):

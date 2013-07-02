@@ -49,7 +49,7 @@ Event is fired with the following arguments:
 * *response_time*: Time in milliseconds until exception was thrown
 * *exception*: Exception instance that was thrown
 * *response*: If the failure was due to an HTTP error code (exception is an instance of urllib2.HTTPError),
-  then response will be an instance of locus.clients.HttpResponse. Otherwise response will be None.
+  then response will be an instance of locus.clients.http.HttpResponse. Otherwise response will be None.
 """
 
 locust_error = EventHook()
