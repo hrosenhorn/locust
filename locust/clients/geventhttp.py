@@ -22,8 +22,8 @@ class GeventHttpSession(object):
     def __init__(self, base_url):
         self.base_url = base_url
         url = URL(self.base_url)
-        self.client = HTTPClient(url.host, url.port)
-        self.cookie_jar = CookieJar()
+        self.client = HTTPClient(url.host, url.port, version="HTTP/1.0")
+        #self.cookie_jar = CookieJar()
 
     def post(self, url, data=None, **kwargs):
         return self.request('post', url, data=data, **kwargs)
@@ -53,7 +53,7 @@ class GeventHttpSession(object):
         request_meta["response_time"] = int((time.time() - start_time) * 1000)
         request_meta["content_size"] = response.content_length
 
-        self.cookie_jar.check(response.headers)
+        #self.cookie_jar.check(response.headers)
 
         if catch_response:
             response.locust_request_meta = request_meta
