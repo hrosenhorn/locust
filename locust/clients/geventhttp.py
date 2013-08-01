@@ -6,16 +6,69 @@ from locust.exception import CatchResponseError, ResponseError
 
 from geventhttpclient import HTTPClient
 from geventhttpclient.url import URL
-import Cookie
 
 class CookieJar(object):
     def __init__(self):
-        self.cookies = []
+        self.cookies = {}
+
+    def _extract(self, raw_data):
+        parts = raw_data.split(";")
+        name, value = parts[0].split("=")
+        self.cookies[name] = value
 
     def check(self, headers):
         for key, value in headers:
             if "set-cookie" == key:
-                s = Cookie.SimpleCookie(value)
+                self._extract(value)
+
+    def get_cookies(self):
+        cookie_data = ""
+        for name, value in self.cookies.iteritems():
+            cookie_data += "%s=%s;" % (name, value)
+
+        return cookie_data
+
+
+class HTTPError(Exception):
+    """An HTTP error occurred."""
+    response = None
+
+
+
+def raise_for_status(self, allow_redirects=True):
+    http_error_msg = ""
+
+    if 300 <= self.status_code < 400 and self.status_code != 302:
+        http_error_msg = '%s Redirection: %s' % (self.status_code, self.read())
+
+    elif 400 <= self.status_code < 500:
+        http_error_msg = '%s Client Error: %s' % (self.status_code, self.read())
+
+    elif 500 <= self.status_code < 600:
+        http_error_msg = '%s Server Error: %s' % (self.status_code, self.read())
+
+    if http_error_msg:
+        http_error = HTTPError(http_error_msg)
+        http_error.response = self
+        raise http_error
+
+    return None
+
+@property
+def ok(self):
+    try:
+        self.raise_for_status()
+    except Exception:
+        return False
+    return True
+
+@property
+def text(self):
+    try:
+        return self.content
+    except Exception:
+        self.content = self.read()
+        return self.content
 
 
 class GeventHttpSession(object):
@@ -23,7 +76,7 @@ class GeventHttpSession(object):
         self.base_url = base_url
         url = URL(self.base_url)
         self.client = HTTPClient(url.host, url.port, version="HTTP/1.0")
-        #self.cookie_jar = CookieJar()
+        self.cookie_jar = CookieJar()
 
     def post(self, url, data=None, **kwargs):
         return self.request('post', url, data=data, **kwargs)
@@ -39,28 +92,36 @@ class GeventHttpSession(object):
 
         start_time = time.time()
 
+        kwargs.setdefault("headers", {})
+
         if "data" in kwargs:
-            kwargs.setdefault("headers", {})
-            kwargs["headers"]["Content-Type"] =  "application/x-www-form-urlencoded"
+            kwargs["headers"]["Content-Type"] = "application/x-www-form-urlencoded"
             kwargs["body"] = urllib.urlencode(kwargs["data"])
             del kwargs["data"]
 
         if "allow_redirects" in kwargs:
             del kwargs["allow_redirects"]
 
+        cookies = self.cookie_jar.get_cookies()
+        if cookies:
+            kwargs["headers"]["Cookie"] = cookies
+
+
 
         response = self.client.request(method, url, **kwargs)
         request_meta["response_time"] = int((time.time() - start_time) * 1000)
         request_meta["content_size"] = response.content_length
 
-        #self.cookie_jar.check(response.headers)
+        self.cookie_jar.check(response.headers)
 
         if catch_response:
             response.locust_request_meta = request_meta
             return GeventHttpResponseContextManager(response)
         else:
-            if response.status_code != 200:
-                events.request_failure.fire(request_meta["method"], request_meta["name"], request_meta["response_time"], "Error", None)
+            try:
+                response.raise_for_status()
+            except Exception, e:
+                events.request_failure.fire(request_meta["method"], request_meta["name"], request_meta["response_time"], e, None)
             else:
                 events.request_success.fire(
                     request_meta["method"],
@@ -77,11 +138,16 @@ class GeventHttpResponseContextManager(object):
         # copy data from response to this object
         self.__dict__ = response.__dict__
 
+        self.response = response
         self.status_code = response.status_code
         self.headers = dict(response.headers)
 
     def __enter__(self):
         return self
+
+    @property
+    def text(self):
+        return self.response.text
 
     def __exit__(self, exc, value, traceback):
         if self._is_reported:
@@ -95,7 +161,7 @@ class GeventHttpResponseContextManager(object):
             else:
                 return False
         else:
-            if self.status_code != 200:
+            if not self.response.ok:
                 self.failure("Status code was %d" % (self.status_code,))
             else:
                 self.success()
@@ -143,3 +209,8 @@ class GeventHttpResponseContextManager(object):
             self,
         )
         self._is_reported = True
+
+from geventhttpclient.response import HTTPResponse
+HTTPResponse.ok = ok
+HTTPResponse.text = text
+HTTPResponse.raise_for_status = raise_for_status
