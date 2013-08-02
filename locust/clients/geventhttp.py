@@ -161,8 +161,10 @@ class GeventHttpResponseContextManager(object):
             else:
                 return False
         else:
-            if not self.response.ok:
-                self.failure("Status code was %d" % (self.status_code,))
+            try:
+                self.response.raise_for_status()
+            except HTTPError, e:
+                self.failure(e)
             else:
                 self.success()
         return True
