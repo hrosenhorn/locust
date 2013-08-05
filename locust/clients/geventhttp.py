@@ -75,7 +75,8 @@ class GeventHttpSession(object):
     def __init__(self, base_url):
         self.base_url = base_url
         url = URL(self.base_url)
-        self.client = HTTPClient(url.host, url.port, version="HTTP/1.0")
+        #self.client = HTTPClient(url.host, url.port, version="HTTP/1.0")
+        self.client = HTTPClient(url.host, url.port)
         self.cookie_jar = CookieJar()
 
     def post(self, url, data=None, **kwargs):
