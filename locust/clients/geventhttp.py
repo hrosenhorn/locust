@@ -150,6 +150,10 @@ class GeventHttpResponseContextManager(object):
     def text(self):
         return self.response.text
 
+    @property
+    def ok(self):
+        return self.response.ok
+
     def __exit__(self, exc, value, traceback):
         if self._is_reported:
             # if the user has already manually marked this response as failure or success
