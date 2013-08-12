@@ -104,7 +104,10 @@ class GeventHttpSession(object):
 
         if "data" in kwargs:
             kwargs["headers"]["Content-Type"] = "application/x-www-form-urlencoded"
-            kwargs["body"] = urllib.urlencode(kwargs["data"])
+            if isinstance(kwargs["data"], dict):
+                kwargs["body"] = urllib.urlencode(kwargs["data"])
+            else:
+                kwargs["body"] = kwargs["data"]
             del kwargs["data"]
 
         if "allow_redirects" in kwargs:
