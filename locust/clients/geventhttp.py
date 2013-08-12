@@ -39,15 +39,16 @@ def raise_for_status(self, allow_redirects=True):
     http_error_msg = ""
 
     if 300 <= self.status_code < 400 and self.status_code != 302:
-        http_error_msg = '%s Redirection: %s' % (self.status_code, self.read())
+        http_error_msg = '%s Redirection: %s' % (self.status_code, str(self))
 
     elif 400 <= self.status_code < 500:
-        http_error_msg = '%s Client Error: %s' % (self.status_code, self.read())
+        http_error_msg = '%s Client Error: %s' % (self.status_code, str(self))
 
     elif 500 <= self.status_code < 600:
-        http_error_msg = '%s Server Error: %s' % (self.status_code, self.read())
+        http_error_msg = '%s Server Error: %s' % (self.status_code, str(self))
 
     if http_error_msg:
+        print "HEJ SVEJS"
         http_error = HTTPError(http_error_msg)
         http_error.response = self
         raise http_error
@@ -69,6 +70,12 @@ def text(self):
     except Exception:
         self.content = self.read()
         return self.content
+
+
+def patched_repr(self):
+    return "<{klass} status={status}>".format(
+        klass=self.__class__.__name__,
+        status=self.status_code)
 
 
 class GeventHttpSession(object):
@@ -221,3 +228,4 @@ from geventhttpclient.response import HTTPResponse
 HTTPResponse.ok = ok
 HTTPResponse.text = text
 HTTPResponse.raise_for_status = raise_for_status
+HTTPResponse.__repr__ = patched_repr
