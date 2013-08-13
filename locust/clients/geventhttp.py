@@ -48,7 +48,6 @@ def raise_for_status(self, allow_redirects=True):
         http_error_msg = '%s Server Error: %s' % (self.status_code, str(self))
 
     if http_error_msg:
-        print "HEJ SVEJS"
         http_error = HTTPError(http_error_msg)
         http_error.response = self
         raise http_error
