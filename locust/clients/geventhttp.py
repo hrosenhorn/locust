@@ -64,12 +64,10 @@ def ok(self):
 
 @property
 def text(self):
-    try:
-        return self.content
-    except Exception:
+    if not hasattr(self, "content"):
         self.content = self.read()
-        return self.content
 
+    return self.content
 
 def patched_repr(self):
     return "<{klass} status={status}>".format(
@@ -146,7 +144,7 @@ class GeventHttpResponseContextManager(object):
 
     def __init__(self, response):
         # copy data from response to this object
-        self.__dict__ = response.__dict__
+        self.__dict__ = dict(response.__dict__)
 
         self.response = response
         self.status_code = response.status_code
