@@ -97,7 +97,9 @@ class RequestStats(object):
         self.response_times[rounded_response_time] += 1
 
     def log_error(self, error):
+        RequestStats.total_num_requests += 1
         self.num_failures += 1
+        self.log_request_time()
         key = "%r: %s" % (error, repr(str(error)))
         RequestStats.errors.setdefault(key, 0)
         RequestStats.errors[key] += 1
